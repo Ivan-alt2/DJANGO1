@@ -1,4 +1,5 @@
 from http import HTTPStatus
+
 import pytest
 from pytest_django.asserts import assertRedirects
 
@@ -71,9 +72,15 @@ def test_pages_availability_for_different_users(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'name', ('/', 'auth/login', 'auth/logout', 'auth/signup')
+    'url',
+    ('/', '/auth/login/', '/auth/signup/')
 )
-def test_pages_availability_for_anonymous_user(client, name):
-    url = f'/{name}/'
+def test_pages_availability_for_anonymous_user(client, url):
     response = client.get(url)
+    assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.django_db
+def test_logout(author_client):
+    response = author_client.post('/auth/logout/')
     assert response.status_code == HTTPStatus.OK
