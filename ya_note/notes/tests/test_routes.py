@@ -58,7 +58,6 @@ class TestRoutes(TestCase):
     def test_pages_availability(self):
         urls = (
             ('auth/login'),
-            ('auth/logout'),
             ('auth/signup'),
         )
         for name in urls:
@@ -66,6 +65,10 @@ class TestRoutes(TestCase):
                 url = f'/{name}/'
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_logout(self):
+        response = self.auth_client.post('/auth/logout/')
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_availability_add_notes_done(self):
         urls = ('add', 'notes', 'done')
