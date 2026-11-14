@@ -112,8 +112,7 @@ class TestCommentEditDelete(TestCase):
         }
         response = self.author_client.post(self.add_url, data=bad_note)
         self.assertFormError(
-            response,
-            form='form',
+            response.context['form'],
             field='slug',
             errors=self.note.slug + WARNING,
         )
