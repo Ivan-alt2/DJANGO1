@@ -1,5 +1,7 @@
+from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from notes.forms import NoteForm
@@ -8,28 +10,33 @@ from notes.models import Note
 
 User = get_user_model()
 
+LOGIN_URL = reverse('users:login')
+
 
 class CommonSetUp(TestCase):
-    """Базовый класс: пользователи, клиенты и заметки создаются один раз."""
+    """Общая подготовка: пользователи, клиенты и заметки создаются один раз."""
 
     @classmethod
     def setUpTestData(cls):
         cls.author = User.objects.create(username='Тьюринг')
         cls.reader = User.objects.create(username='Мария Кьюри')
 
-        cls.author_client = TestCase.client_class()
-        cls.author_client = cls.client_class()
+        cls.author_client = Client()
         cls.author_client.force_login(cls.author)
 
-        cls.reader_client = cls.client_class()
+        cls.reader_client = Client()
         cls.reader_client.force_login(cls.reader)
 
         cls.note = Note.objects.create(
-            title='Заголовок', text='Текст', author=cls.author
+            title='Заголовок',
+            text='Текст',
+            slug='zagolovok',
+            author=cls.author,
         )
         cls.another_note = Note.objects.create(
             title='Радиация',
             text='Первая женщина, которая её открыла',
+            slug='radiatsiya',
             author=cls.reader,
         )
 
@@ -43,7 +50,7 @@ class TestContent(CommonSetUp):
 
         object_list = response.context['object_list']
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertIn(self.note, object_list)
 
     def test_forg_not_org(self):
@@ -52,23 +59,22 @@ class TestContent(CommonSetUp):
 
         object_list = response.context['object_list']
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertIn(self.another_note, object_list)
         self.assertNotIn(self.note, object_list)
 
 
 class TestEditNote(CommonSetUp):
     def setUp(self):
-        self.edit_url = reverse('notes:edit', args=(self.note.id,))
+        self.edit_url = reverse('notes:edit', args=(self.note.slug,))
 
     def test_authorized_client_has_form(self):
         """Авторизованному пользователю доступна форма редактирования."""
         response = self.author_client.get(self.edit_url)
 
-        form = response.context['form']
-
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertIn('form', response.context)
-        self.assertIsInstance(form, NoteForm)
+        self.assertIsInstance(response.context['form'], NoteForm)
 
 
 class TestAddNote(CommonSetUp):
@@ -76,14 +82,15 @@ class TestAddNote(CommonSetUp):
         self.add_url = reverse('notes:add')
 
     def test_anonymous_client_has_no_form(self):
-        """Анонимному пользователю форма добавления не доступна."""
+        """Анонимного пользователя страница добавления редиректит на логин."""
         response = self.client.get(self.add_url)
 
-        self.assertNotIn('form', response.context)
+        self.assertRedirects(response, f'{LOGIN_URL}?next={self.add_url}')
 
     def test_authorized_client_has_form(self):
         """Авторизованному пользователю доступна форма добавления."""
         response = self.author_client.get(self.add_url)
 
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertIn('form', response.context)
         self.assertIsInstance(response.context['form'], NoteForm)
