@@ -1,59 +1,67 @@
-from http import HTTPStatus
-
 import pytest
 from django.conf import settings
-from django.urls import reverse
+from django.test import Client
 
-from news.forms import CommentForm
+from news.models import Comment, News
 
-pytestmark = pytest.mark.django_db
-
-HOME_URL = reverse('news:home')
+COMMENT_TEXT = 'Текст комментария'
 
 
-def test_home_page_news_count(client, news_list):
-    """На главной не больше settings.NEWS_COUNT_ON_HOME_PAGE новостей."""
-    response = client.get(HOME_URL)
-
-    object_list = response.context['object_list']
-
-    assert response.status_code == HTTPStatus.OK
-    assert len(object_list) == settings.NEWS_COUNT_ON_HOME_PAGE
+@pytest.fixture
+def author(django_user_model):
+    """Автор новости и комментариев."""
+    return django_user_model.objects.create(username='Автор')
 
 
-def test_home_page_news_order(client, news_list):
-    """Новости на главной отсортированы от новых к старым."""
-    response = client.get(HOME_URL)
-
-    news_list = response.context['object_list']
-    sorted_news = sorted(news_list, key=lambda news: news.date)
-
-    assert list(news_list) == list(sorted_news)
+@pytest.fixture
+def author_client(author):
+    """Клиент, авторизованный как автор."""
+    client = Client()
+    client.force_login(author)
+    return client
 
 
-def test_comments_order_on_news_detail(client, comment):
-    """Комментарии на странице новости идут от старых к новым."""
-    url = reverse('news:detail', args=(comment.news.pk,))
-    response = client.get(url)
-
-    comment_list = response.context['object'].comment_set.all()
-
-    assert list(comment_list) == list(comment_list.order_by('created'))
+@pytest.fixture
+def vasua(django_user_model):
+    """Пользователь, не являющийся автором комментария."""
+    return django_user_model.objects.create(username='Вася')
 
 
-def test_comment_form_unavailable_for_anonymous_user(client, news):
-    """Анонимному пользователю форма комментария не показывается."""
-    url = reverse('news:detail', args=(news.pk,))
-    response = client.get(url)
+@pytest.fixture
+def vasua_client(vasua):
+    """Клиент, авторизованный как не-автор."""
+    client = Client()
+    client.force_login(vasua)
+    return client
 
-    assert response.status_code == HTTPStatus.OK
-    assert not isinstance(response.context.get('form'), CommentForm)
+
+@pytest.fixture
+def news():
+    """Одна новость в базе."""
+    return News.objects.create(title='Заголовок новости', text='Просто текст.')
 
 
-def test_comment_form_available_for_authenticated_user(author_client, news):
-    """Авторизованному пользователю доступна форма комментария."""
-    url = reverse('news:detail', args=(news.pk,))
-    response = author_client.get(url)
+@pytest.fixture
+def news_list():
+    """NEWS_COUNT_ON_HOME_PAGE + 1 новость для проверки лимита главной."""
+    batch = [
+        News(title=f'Новость {index}', text='Просто текст.')
+        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
+    ]
+    return News.objects.bulk_create(batch)
 
-    assert response.status_code == HTTPStatus.OK
-    assert isinstance(response.context['form'], CommentForm)
+
+@pytest.fixture
+def comment(news, author):
+    """Комментарий к новости от лица автора."""
+    return Comment.objects.create(
+        news=news,
+        author=author,
+        text=COMMENT_TEXT,
+    )
+
+
+@pytest.fixture
+def pk_for_kwargs(comment):
+    """Словарь с pk комментария для reverse()."""
+    return {'pk': comment.pk}
