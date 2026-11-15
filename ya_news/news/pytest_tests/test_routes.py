@@ -2,48 +2,54 @@ from http import HTTPStatus
 
 import pytest
 from pytest_django.asserts import assertRedirects
+from django.urls import reverse
+
+pytestmark = pytest.mark.django_db
+
+HOME_URL = reverse('news:home')
+LOGIN_URL = reverse('auth:login')
+LOGOUT_URL = reverse('logout')
+SIGNUP_URL = reverse('users:signup')
 
 
-@pytest.mark.django_db
 def test_home_availability_for_anonymous_user(client):
-    url = '/'
-    response = client.get(url)
+    """Главная страница доступна анонимному пользователю."""
+    response = client.get(HOME_URL)
     assert response.status_code == HTTPStatus.OK
 
 
-@pytest.mark.django_db
 def test_detail_availability_for_anonymous_user(client, news):
-    url = f'/news/{news.pk}/'
+    """Страница отдельной новости доступна анонимному пользователю."""
+    url = reverse('news:detail', args=(news.pk,))
     response = client.get(url)
     assert response.status_code == HTTPStatus.OK
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     'name, kwargs',
     (
-        ('delete_comment', pytest.lazy_fixture('pk_for_kwargs')),
-        ('edit_comment', pytest.lazy_fixture('pk_for_kwargs')),
+        ('news:delete', pytest.lazy_fixture('pk_for_kwargs')),
+        ('news:edit', pytest.lazy_fixture('pk_for_kwargs')),
     ),
 )
 def test_pages_availability_for_auth_user(author_client, name, kwargs):
-    url = f'/{name}/{kwargs["pk"]}/'
+    """Страницы редактирования и удаления комментария доступны его автору."""
+    url = reverse(name, args=(kwargs['pk'],))
     response = author_client.get(url)
     assert response.status_code == HTTPStatus.OK
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     'name, kwargs',
     (
-        ('delete_comment', pytest.lazy_fixture('pk_for_kwargs')),
-        ('edit_comment', pytest.lazy_fixture('pk_for_kwargs')),
+        ('news:delete', pytest.lazy_fixture('pk_for_kwargs')),
+        ('news:edit', pytest.lazy_fixture('pk_for_kwargs')),
     ),
 )
 def test_redirects(client, name, kwargs):
-    url = f'/{name}/{kwargs["pk"]}/'
-    login_url = '/auth/login/'
-    expected_url = f'{login_url}?next={url}'
+    """Анонимного пользователя страницы edit/delete редиректят на логин."""
+    url = reverse(name, args=(kwargs['pk'],))
+    expected_url = f'{LOGIN_URL}?next={url}'
     response = client.get(url)
     assertRedirects(response, expected_url)
 
@@ -58,29 +64,30 @@ def test_redirects(client, name, kwargs):
 @pytest.mark.parametrize(
     'name, kwargs',
     (
-        ('delete_comment', pytest.lazy_fixture('pk_for_kwargs')),
-        ('edit_comment', pytest.lazy_fixture('pk_for_kwargs')),
+        ('news:delete', pytest.lazy_fixture('pk_for_kwargs')),
+        ('news:edit', pytest.lazy_fixture('pk_for_kwargs')),
     ),
 )
 def test_pages_availability_for_different_users(
     parametrized_client, name, kwargs, expected_status
 ):
-    url = f'/{name}/{kwargs["pk"]}/'
+    """Редактировать и удалять комментарий может только его автор."""
+    url = reverse(name, args=(kwargs['pk'],))
     response = parametrized_client.get(url)
     assert response.status_code == expected_status
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     'url',
-    ('/', '/auth/login/', '/auth/signup/')
+    (HOME_URL, LOGIN_URL, SIGNUP_URL)
 )
 def test_pages_availability_for_anonymous_user(client, url):
+    """Публичные страницы доступны анонимному пользователю."""
     response = client.get(url)
     assert response.status_code == HTTPStatus.OK
 
 
-@pytest.mark.django_db
 def test_logout(author_client):
-    response = author_client.post('/auth/logout/')
+    """POST-запрос на страницу выхода возвращает статус 200."""
+    response = author_client.post(LOGOUT_URL)
     assert response.status_code == HTTPStatus.OK
