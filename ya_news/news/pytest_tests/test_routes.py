@@ -1,14 +1,14 @@
 from http import HTTPStatus
 
 import pytest
-from pytest_django.asserts import assertRedirects
 from django.urls import reverse
+from pytest_django.asserts import assertRedirects
 
 pytestmark = pytest.mark.django_db
 
 HOME_URL = reverse('news:home')
-LOGIN_URL = reverse('auth:login')
-LOGOUT_URL = reverse('logout')
+LOGIN_URL = reverse('users:login')
+LOGOUT_URL = reverse('users:logout')
 SIGNUP_URL = reverse('users:signup')
 
 
@@ -47,7 +47,7 @@ def test_pages_availability_for_auth_user(author_client, name, kwargs):
     ),
 )
 def test_redirects(client, name, kwargs):
-    """Анонимного пользователя страницы edit/delete редиректят на логин."""
+    """Анонимного пользователя на edit/delete редиректит на страницу входа."""
     url = reverse(name, args=(kwargs['pk'],))
     expected_url = f'{LOGIN_URL}?next={url}'
     response = client.get(url)
