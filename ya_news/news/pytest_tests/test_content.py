@@ -14,14 +14,15 @@ HOME_URL = reverse('news:home')
 def test_home_page_news_count(client, news_list):
     """На главной не больше settings.NEWS_COUNT_ON_HOME_PAGE новостей."""
     response = client.get(HOME_URL)
+
+    object_list = response.context['object_list']
+
     assert response.status_code == HTTPStatus.OK
-    assert (
-        len(response.context['object_list']) == settings.NEWS_COUNT_ON_HOME_PAGE
-    )
+    assert len(object_list) == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
 def test_home_page_news_order(client, news_list):
-    """Новости на главной отсортированы по дате."""
+    """Новости на главной отсортированы от новых к старым."""
     response = client.get(HOME_URL)
 
     news_list = response.context['object_list']
