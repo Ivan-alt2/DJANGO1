@@ -63,5 +63,5 @@ def comment(news, author):
 
 @pytest.fixture
 def pk_for_kwargs(comment):
-    """Словарь с pk комментария для reverse()."""
+    """Словарь с pk комментария для параметризации в test_routes."""
     return {'pk': comment.pk}
