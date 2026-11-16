@@ -39,7 +39,9 @@ class TestCommentEditDelete(CommonSetUp):
 
     def test_user_cant_delete_note_of_another_user(self):
         """Посторонний пользователь не может удалить чужую заметку."""
-        Note.objects.exclude(pk__in=(self.note.pk, self.another_note.pk)).delete()
+        keep_pks = (self.note.pk, self.another_note.pk)
+        Note.objects.exclude(pk__in=keep_pks).delete()
+
 
         response = self.reader_client.delete(self.delete_url)
 
