@@ -37,7 +37,11 @@ def test_authenticated_user_can_comment(author_client, news, author, url):
 
 def test_comment_warring_text_for_authenticated_user(author_client, news, url):
     """За запрещённое слово форма возвращает ошибку, комментарий не создаётся."""
-    response = author_client.post(url, data={'text': FORBIDDEN_TEXT})
+       response = client.post(
+        NEWS_DETAIL_URL,
+        data={'text': ANONYMOUS_COMMENT_TEXT},
+    )
+
 
     assert response.status_code == HTTPStatus.OK
 
