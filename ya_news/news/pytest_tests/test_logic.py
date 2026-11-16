@@ -2,7 +2,6 @@ from http import HTTPStatus
 
 import pytest
 
-from news.forms import CommentForm
 from news.models import Comment, News
 
 pytestmark = pytest.mark.django_db
