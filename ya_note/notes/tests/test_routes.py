@@ -2,7 +2,6 @@ from http import HTTPStatus
 
 from django.urls import reverse
 
-from notes.models import Note
 from notes.tests.common import LOGIN_URL, SUCCESS_URL, CommonSetUp
 
 HOME_URL = reverse('notes:home')
