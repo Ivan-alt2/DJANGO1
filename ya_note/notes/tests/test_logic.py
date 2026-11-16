@@ -42,7 +42,6 @@ class TestCommentEditDelete(CommonSetUp):
         keep_pks = (self.note.pk, self.another_note.pk)
         Note.objects.exclude(pk__in=keep_pks).delete()
 
-
         response = self.reader_client.delete(self.delete_url)
 
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
