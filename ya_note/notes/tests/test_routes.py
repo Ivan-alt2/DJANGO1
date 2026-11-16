@@ -1,51 +1,37 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
 from django.urls import reverse
 
 from notes.models import Note
-
-
-User = get_user_model()
+from notes.tests.common import LOGIN_URL, SUCCESS_URL, CommonSetUp
 
 HOME_URL = reverse('notes:home')
-LOGIN_URL = reverse('users:login')
 LOGOUT_URL = reverse('users:logout')
 SIGNUP_URL = reverse('users:signup')
 ADD_URL = reverse('notes:add')
-SUCCESS_URL = reverse('notes:success')
 LIST_URL = reverse('notes:list')
 
 
-class TestRoutes(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.author = User.objects.create(username='Лев Толстой')
-        cls.author_client = Client()
-        cls.author_client.force_login(cls.author)
-
-        cls.reader = User.objects.create(username='Читатель простой')
-        cls.reader_client = Client()
-        cls.reader_client.force_login(cls.reader)
-
-        cls.note = Note.objects.create(
-            title='Заголовок', text='Текст', slug=1, author=cls.author
-        )
-        cls.edit_url = reverse('notes:edit', args=(cls.note.id,))
-        cls.delete_url = reverse('notes:delete', args=(cls.note.id,))
-        cls.detail_url = reverse('notes:detail', args=(cls.note.slug,))
+class TestRoutes(CommonSetUp):
+    def setUp(self):
+        self.edit_url = reverse('notes:edit', args=(self.note.slug,))
+        self.delete_url = reverse('notes:delete', args=(self.note.slug,))
+        self.detail_url = reverse('notes:detail', args=(self.note.slug,))
 
     def test_pages_availability(self):
         """Страницы доступны соответствующим типам клиентов."""
-        users_statuses = (
-            (None, self.client, (HOME_URL, LOGIN_URL, SIGNUP_URL)),
-            (self.author, self.author_client, (ADD_URL, LIST_URL, SUCCESS_URL)),
-            (self.author, self.author_client, (self.edit_url, self.delete_url)),
+        public_urls = (HOME_URL, LOGIN_URL, SIGNUP_URL)
+        private_urls = (ADD_URL, LIST_URL, SUCCESS_URL)
+        note_urls = (self.edit_url, self.delete_url)
+
+        cases = (
+            ('anonymous', self.client, public_urls),
+            ('author', self.author_client, private_urls),
+            ('author', self.author_client, note_urls),
         )
-        for user, client, urls in users_statuses:
+        for username, client, urls in cases:
             for url in urls:
-                with self.subTest(user=user, url=url):
+                with self.subTest(user=username, url=url):
                     response = client.get(url)
                     self.assertEqual(response.status_code, HTTPStatus.OK)
 
