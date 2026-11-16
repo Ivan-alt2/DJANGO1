@@ -48,7 +48,7 @@ def test_authenticated_user_can_comment(author_client, news, author):
 
 
 def test_comment_warring_text_for_authenticated_user(author_client, news):
-    """За запрещённое слово форма возвращает ошибку, комментарий не создаётся."""
+    """За запрещённое слово форма возвращает ошибку."""
     response = author_client.post(
         NEWS_DETAIL_URL,
         data={'text': FORBIDDEN_TEXT},
