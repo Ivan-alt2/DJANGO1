@@ -1,6 +1,7 @@
 import pytest
 from django.conf import settings
 from django.test import Client
+from django.urls import reverse
 
 from news.models import Comment, News
 
@@ -59,3 +60,21 @@ def comment(news, author):
         author=author,
         text=COMMENT_TEXT,
     )
+
+
+@pytest.fixture
+def detail_url(news):
+    """Адрес страницы новости."""
+    return reverse('news:detail', args=(news.pk,))
+
+
+@pytest.fixture
+def edit_url(comment):
+    """Адрес страницы редактирования комментария."""
+    return reverse('news:edit', args=(comment.pk,))
+
+
+@pytest.fixture
+def delete_url(comment):
+    """Адрес страницы удаления комментария."""
+    return reverse('news:delete', args=(comment.pk,))
